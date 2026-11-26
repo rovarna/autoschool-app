@@ -36,7 +36,8 @@ autoschool-app/
 │   ├── 01-feasibility/      ТЭО
 │   ├── 02-requirements/     техническое задание
 │   ├── 03-uml/              UML-диаграммы
-│   └── 04-architecture/     ER-модель, API (openapi.yaml), архитектура
+│   ├── 04-architecture/     ER-модель, API (openapi.yaml), архитектура
+│   └── 05-manuals/          руководства пользователя и системного администратора
 ├── prototypes/            прототипы экранов мобильного приложения
 ├── backend/               серверная часть и веб-панель (Django) — см. backend/README.md
 │   ├── autoschool/          настройки проекта
