@@ -1,0 +1,399 @@
+openapi: 3.0.3
+info:
+  title: Autoschool API
+  version: 1.0.0
+  description: |
+    REST API взаимодействия мобильного приложения (Flutter) с сервером
+    приложения (Django). Источник — ЛР 4, раздел 2 (табл. 2.1–2.3).
+    Все адреса указаны относительно базового адреса /api/v1.
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: localhost
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      summary: Вход в систему, получение токена
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Токены выданы
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access: { type: string }
+                      refresh: { type: string }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /instructors:
+    get:
+      summary: Список инструкторов филиала учащегося
+      tags: [instructors]
+      responses:
+        "200":
+          description: Список инструкторов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/InstructorShort" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /instructors/{id}:
+    get:
+      summary: Карточка инструктора
+      tags: [instructors]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Карточка инструктора
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Instructor" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /students/me/instructor:
+    put:
+      summary: Закрепление инструктора за учащимся
+      tags: [students]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instructor_id]
+              properties:
+                instructor_id:
+                  type: integer
+                  description: Инструктор филиала учащегося
+      responses:
+        "200": { description: Инструктор закреплён }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /instructors/{id}/slots:
+    get:
+      summary: Свободное время инструктора
+      tags: [slots]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Свободные интервалы
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Slot" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /slots:
+    post:
+      summary: Добавление инструктором времени для записи
+      tags: [slots]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start_at, end_at]
+              properties:
+                start_at: { type: string, format: date-time }
+                end_at:
+                  type: string
+                  format: date-time
+                  description: Позже start_at
+      responses:
+        "201":
+          description: Интервал создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Slot" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /slots/{id}:
+    delete:
+      summary: Удаление инструктором незанятого времени
+      tags: [slots]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Интервал удалён }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /bookings:
+    get:
+      summary: Записи пользователя (календарь)
+      tags: [bookings]
+      responses:
+        "200":
+          description: Записи пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Booking" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      summary: Запись учащегося на занятие
+      tags: [bookings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slot_id]
+              properties:
+                slot_id: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: Запись создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Booking" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/RuleViolation" }
+
+  /bookings/{id}:
+    patch:
+      summary: Отмена записи, отметка проведения или неявки
+      tags: [bookings]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [cancelled, completed, no_show]
+      responses:
+        "200":
+          description: Статус изменён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Booking" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/RuleViolation" }
+
+  /bookings/{id}/review:
+    post:
+      summary: Оценка проведённого занятия
+      tags: [bookings]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                text: { type: string, maxLength: 1000 }
+      responses:
+        "201": { description: Оценка сохранена }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/RuleViolation" }
+
+  /students/me/exams:
+    get:
+      summary: Результаты зачётов учащегося
+      tags: [students]
+      responses:
+        "200":
+          description: Зачёты учащегося
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Exam" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  schemas:
+    InstructorShort:
+      type: object
+      properties:
+        id: { type: integer }
+        last_name: { type: string, maxLength: 50 }
+        first_name: { type: string, maxLength: 50 }
+        experience_years: { type: integer }
+        rating: { type: number, format: float }
+        photo_url: { type: string, format: uri }
+
+    Instructor:
+      allOf:
+        - $ref: "#/components/schemas/InstructorShort"
+        - type: object
+          properties:
+            patronymic: { type: string, maxLength: 50 }
+            car_brand: { type: string, maxLength: 50 }
+            car_transmission: { type: string, enum: [manual, automatic] }
+            site_address: { type: string }
+            reviews_count: { type: integer }
+            exam_pass_rate: { type: number, format: float, description: "Процент сдачи внутреннего экзамена" }
+
+    Slot:
+      type: object
+      required: [id, instructor_id, start_at, end_at]
+      properties:
+        id: { type: integer }
+        instructor_id: { type: integer }
+        start_at: { type: string, format: date-time }
+        end_at: { type: string, format: date-time }
+
+    Booking:
+      type: object
+      required: [id, student_id, slot_id, status, created_at]
+      properties:
+        id: { type: integer }
+        slot_id: { type: integer }
+        student_id: { type: string, maxLength: 20 }
+        status: { type: string, enum: [booked, cancelled, completed, no_show] }
+        created_at: { type: string, format: date-time }
+
+    Exam:
+      type: object
+      properties:
+        id: { type: integer }
+        type: { type: string, maxLength: 30 }
+        result: { type: string, maxLength: 20 }
+        exam_date: { type: string, format: date }
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: SLOT_ALREADY_BOOKED }
+            message: { type: string, example: "Это время уже занято, выберите другое" }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+
+  responses:
+    ValidationError:
+      description: "VALIDATION_ERROR — неверный формат или значение поля"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: "UNAUTHORIZED, TOKEN_EXPIRED — токен не передан, недействителен или истёк"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: "FORBIDDEN — действие недоступно роли или ресурс принадлежит другому пользователю"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: "INSTRUCTOR_NOT_FOUND, SLOT_NOT_FOUND, BOOKING_NOT_FOUND"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: "SLOT_ALREADY_BOOKED, SLOT_OVERLAP, INSTRUCTOR_ALREADY_ASSIGNED, REVIEW_ALREADY_EXISTS, INVALID_STATUS_TRANSITION"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RuleViolation:
+      description: "BOOKING_LIMIT_EXCEEDED, CANCELLATION_TOO_LATE, BOOKING_NOT_COMPLETED — нарушено правило записи филиала"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: "RATE_LIMITED — превышено число запросов в минуту"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
