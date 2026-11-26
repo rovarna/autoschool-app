@@ -7,6 +7,7 @@
 | [03-uml](03-uml) | [UML-диаграммы и прототип интерфейса](03-uml/lab3-uml-and-prototype.pdf) | ЛР 3 |
 | [04-architecture](04-architecture) | [Модель данных, API и архитектура](04-architecture/lab4-data-api-architecture.pdf), [спецификация API (OpenAPI 3)](04-architecture/openapi.yaml) | ЛР 4 |
 | [05-manuals](05-manuals) | [Руководство пользователя мобильного приложения](05-manuals/user-guide-mobile.pdf), [руководство системного администратора](05-manuals/sysadmin-guide.pdf) | ЛР 5 |
+| — | [Отчёт по ЛР 5](lab5-vcs-iteration-documentation.pdf): репозиторий проекта, итерация по замечаниям заказчика, комплект документации | ЛР 5 |
 
 ## Диаграммы
 
