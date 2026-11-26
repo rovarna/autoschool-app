@@ -303,6 +303,8 @@ components:
         experience_years: { type: integer }
         rating: { type: number, format: float }
         photo_url: { type: string, format: uri }
+        car_transmission: { type: string, enum: [manual, automatic] }
+        site_address: { type: string, maxLength: 200 }
 
     Instructor:
       allOf:
@@ -311,8 +313,6 @@ components:
           properties:
             patronymic: { type: string, maxLength: 50 }
             car_brand: { type: string, maxLength: 50 }
-            car_transmission: { type: string, enum: [manual, automatic] }
-            site_address: { type: string }
             reviews_count: { type: integer }
             exam_pass_rate: { type: number, format: float, description: "Процент сдачи внутреннего экзамена" }
 
